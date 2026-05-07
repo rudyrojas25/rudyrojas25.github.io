@@ -3,15 +3,78 @@ class OneD extends Phaser.Scene {
         super("OneDscene");
         this.my = {sprite: {}};  // Create an object to hold sprite bindings
 
-        this.Akey = null;
-        this.Dkey = null;
-        this.Spacekey = null;
-
         this.ufoX = 700;
         this.ufoY = 250;
 
         this.hotdogX = -200;
         this.hotdogY = 535;
+    }
+
+    preload() {
+        this.load.setPath("./assets/");
+
+        //player
+        this.load.image('ufo', 'shipGreen_manned.png');
+        this.load.image('ufo_b', 'shipBlue_manned.png')
+
+        //background
+        this.load.image('bg', 'backgroundEmpty.png');
+        this.load.image('ground', 'castleMid.png');
+
+        //props
+        this.load.image('van', 'van.png');
+        this.load.image('police', 'police.png');
+        this.load.image('suv', 'suv_military.png');
+        this.load.image('truck', 'truck.png');
+        this.load.image('light', 'light.png');
+        this.load.image('sign', 'highway.png');
+        this.load.image('barrier', 'barrier.png');
+
+        //bullets
+        this.load.image('laser', 'laserBlue1.png');
+        this.load.image('missile', 'spaceMissiles_037.png');
+        this.load.image('rocket', 'spaceMissiles_040.png');
+
+
+        //enemies
+        this.load.image('m_truck', 'truckdark.png');
+        this.load.image('r_truck', 'suv_closed.png');
+        this.load.image('hotdog', 'hotdog.png');
+
+        //plane anim
+        this.load.image('plane1', 'planeGreen1.png');
+        this.load.image('plane2', 'planeGreen2.png');
+        this.load.image('plane3', 'planeGreen3.png');
+
+        //exposion anim
+        this.load.image('explosion1', 'explosion01.png');
+        this.load.image('explosion2', 'explosion02.png');
+
+        //audio
+        this.load.audio('laser_a', 'laserSmall_000.ogg');
+        this.load.audio('boom1', 'explosionCrunch_000.ogg');
+        this.load.audio('boom2', 'explosionCrunch_001.ogg');
+        this.load.audio('boom3', 'explosionCrunch_002.ogg');
+
+        
+    }
+
+    create() {
+        //console.log("create\n");
+
+        this.Akey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+        this.Dkey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+        this.space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.Rkey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+
+        this.bg = this.add.tileSprite(0, 0, 1200, 600, "bg");
+        this.bg.setOrigin(0, 0);
+
+        this.ground = this.add.tileSprite(0, 565, 1200, 100, "ground");
+        this.ground.setOrigin(0, 0);
+
+        let my = this.my;
+
         this.hotdogActive = false;
 
         this.bulletCooldown = 20;        // Number of update() calls to wait before making a new bullet
@@ -37,42 +100,14 @@ class OneD extends Phaser.Scene {
         this.enemiesDefeated = 0;
         this.testFlag1 = false;
         this.testFlag2 = false;
+        this.animStarted = false;
 
         this.hitCooldown = 2000;
         this.hitCooldownCounter = 0;
-    }
 
-    preload() {
-        this.load.setPath("./assets/");
-        this.load.image('bg', 'backgroundEmpty.png');
-        this.load.image('ufo', 'shipGreen_manned.png');
-        this.load.image('laser', 'laserBlue1.png');
-        this.load.image('van', 'van.png');
-        this.load.image('ground', 'castleMid.png');
-        this.load.image('m_truck', 'truckdark.png');
-        this.load.image('missile', 'spaceMissiles_037.png');
-        this.load.image('rocket', 'spaceMissiles_040.png');
-        this.load.image('plane1', 'planeGreen1.png');
-        this.load.image('plane2', 'planeGreen2.png');
-        this.load.image('plane3', 'planeGreen3.png');
-        this.load.image('hotdog', 'hotdog.png');
-        this.load.image('r_truck', 'suv_closed.png');
-    }
 
-    create() {
-        //console.log("create\n");
 
-        this.Akey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
-        this.Dkey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
-        this.space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-
-        this.bg = this.add.tileSprite(0, 0, 1200, 600, "bg");
-        this.bg.setOrigin(0, 0);
-
-        this.ground = this.add.tileSprite(0, 565, 1200, 100, "ground");
-        this.ground.setOrigin(0, 0);
-
-        let my = this.my;
+        this.propAssets = ['van', 'police', 'suv', 'truck', 'light', 'sign', 'barrier'];
 
         my.sprite.bulletGroup = this.add.group({
             defaultKey: "laser",
@@ -111,7 +146,7 @@ class OneD extends Phaser.Scene {
 
         my.sprite.planeGroup = this.add.group({
             defaultKey: "plane1",
-            maxSize: 6
+            maxSize: 10
             }
         )
 
@@ -197,6 +232,14 @@ class OneD extends Phaser.Scene {
         my.sprite.hotdog.setScale(2.5);
 
         this.hotdogHealth = 4;
+        this.playerHealth = 2;
+        this.score = 0;
+        this.scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#000' });
+        this.gameOverText = this.add.text(300, 16, 'A (left), D (right), Space (fire)', { fontSize: '24px', fill: '#000' });
+         //this.playerHealth = 1;
+        this.playerHit = false;
+        this.gameOver = false;
+        this.hotdogSpeed = 75;
 
         this.bulletSpeed = 400;
         this.missileSpeed = 500;
@@ -215,14 +258,82 @@ class OneD extends Phaser.Scene {
         for (let prop of my.sprite.propGroup.getChildren()) {
             //prop.active = true;
             //prop.visible = true;
+            //prop.setTexture(this.propAssets[Math.random()*10]);
             prop.x = Math.random()*config.width;
             prop.y = 550;
+            //prop.setTexture(this.propAssets[Phaser.Math.Between(0, 6)]);
             prop.setScale(2);
+            let key = this.propAssets[Phaser.Math.Between(0, 6)];
+                prop.setTexture(key);
+                if (key == 'truck') {
+                    prop.y = 542;
+                    prop.setScale(2);
+                    //prop.setDepth(1);
+                } else if (key == 'barrier'){
+                    prop.y = 557;
+                    prop.setScale(2);
+                } else if (key == 'light'){
+                    prop.y = 523;
+                    prop.setScale(2, 3);
+                } else if (key == 'sign'){
+                    prop.y = 517;
+                    prop.setScale(3);
+                }else if (key == 'van'){
+                    prop.y = 546;
+                    prop.setScale(2);
+                } else {
+                    prop.y = 552;
+                    prop.setScale(2);
+                }
         }
 
+        //for debug
         for (let laser of my.sprite.bulletGroup.getChildren()) {
             laser.x = -500;
         }
+        for (let missile of my.sprite.missileGroup.getChildren()) {
+            missile.x = -500;
+        }
+        for (let plane of my.sprite.planeGroup.getChildren()) {
+            plane.y = -200;
+        }
+        for (let rocket of my.sprite.rocketGroup.getChildren()) {
+            rocket.y = -300;
+        }
+        for (let laser of my.sprite.h_laserGroup.getChildren()) {
+            laser.x = -500;
+        }
+        for (let m_truck of my.sprite.m_truckGroup.getChildren()) {
+            m_truck.y = -200;
+        }
+        for (let r_truck of my.sprite.r_truckGroup.getChildren()) {
+            r_truck.y = -200;
+        }
+
+        this.anims.create({
+            key: "plane_anim",
+            frames: [
+                {key: "plane1"},
+                {key: "plane2"},
+                {key: "plane3"},
+                {key: "plane2"}
+            ],
+            frameRate: 30,
+            repeat: -1,
+            //duration: 1,
+            hideOnComplete: true
+        });
+
+        this.anims.create({
+            key: "explosion_anim",
+            frames: [
+                {key: "explosion1"},
+                {key: "explosion2"}
+            ],
+            frameRate: 20,
+            repeat: 5,
+            hideOnComplete: true
+        });
     }
 
     update(time, delta) {
@@ -232,8 +343,27 @@ class OneD extends Phaser.Scene {
         this.bg.tilePositionX += 50 * dt; //0.25
         this.ground.tilePositionX += 75 * dt; //1,25
         
-        //may have to rewrite to work with dt
-        
+        if ((this.playerHealth == 1) && (this.playerHit == false)){
+            my.sprite.ufo.setTexture('ufo_b').setScale(0.5, 0.45);
+            this.playerHit = true;
+        } else if ((this.playerHealth == 0) && (this.gameOver == false)){
+            this.explosion_anim = this.add.sprite(my.sprite.ufo.x, my.sprite.ufo.y, "explosion1").setScale(0.1).play("explosion_anim");
+            this.gameOver = true;
+            this.gameOverText.setText('Game Over (press R to restart)');
+            my.sprite.ufo.setVisible(false);
+            my.sprite.ufo.x = 1300;
+            //this.wave = 1;
+            //this.waveCalled = false;
+        } else if ((this.enemiesDefeated > 15) && (this.gameOver == false)) {
+            this.gameOver = true;
+            this.gameOverText.setText('enemy force depleted! (press R to restart)');
+
+        }
+
+        if ((this.gameOver == true) && ((this.Rkey.isDown))) {
+            this.scene.restart();
+        }
+
         //truck movement
         for (let truck of my.sprite.m_truckGroup.getChildren()) {
             if (truck.x < 1250) {
@@ -242,7 +372,6 @@ class OneD extends Phaser.Scene {
                 truck.x = -10;
             }
         }
-
         for (let truck of my.sprite.r_truckGroup.getChildren()) {
             if (truck.x < 1250) {
                 truck.x += this.truckSpeed2 * dt; //25
@@ -253,33 +382,56 @@ class OneD extends Phaser.Scene {
 
         //hotdog boss movement
         if ((my.sprite.hotdog.x > my.sprite.ufo.x) && (this.hotdogActive == true)) {
-            my.sprite.hotdog.x -= 75 * dt; //alt is 90 for both
-        } else if (this.hotdogActive == true) {
-            my.sprite.hotdog.x += 75 * dt;
+            my.sprite.hotdog.x -= this.hotdogSpeed * dt; //alt is 90 for both
+        } else if (this.hotdogActive == true) { //75
+            my.sprite.hotdog.x += this.hotdogSpeed * dt;
+        } else if (this.hotdogActive == false) {
+            my.sprite.hotdog.x = -200;
         }
-
-        //maybe planes can start on the ground and move upwards?
-        //or some bullets move diagonally?
+        if (this.hotdogHealth <= 2) {
+            this.hotdogSpeed = 150;
+        }
 
         //plane movement 
         for (let plane of my.sprite.planeGroup.getChildren()) {
-            if (plane.x < 1250) {
+            if ((plane.x < 1250) && (plane.active)) {
                 plane.x += 250 * dt; //125
-            } else {
+            } else if (plane.active){
                 plane.x = Math.random()*config.width - 1200;
+            } else {
+                plane.y = -200;
             }
         }
-        
+
         //handle randomly appearing props
         for (let prop of my.sprite.propGroup.getChildren()) {
             if (prop.x > 0) {
                 prop.x -= 75 * dt;
             } else { //if offscreen
                 prop.x = Math.random()*config.width + 1200;
-                //also assign new random sprite
+                let key = this.propAssets[Phaser.Math.Between(0, 6)];
+                prop.setTexture(key);
+                if (key == 'truck') {
+                    prop.y = 545;
+                    prop.setScale(2);
+                } else if (key == 'barrier'){
+                    prop.y = 557;
+                    prop.setScale(2)
+                } else if (key == 'light'){
+                    prop.y = 523;
+                    prop.setScale(2, 3);
+                } else if (key == 'sign'){
+                    prop.y = 517;
+                    prop.setScale(3);
+                }else if (key == 'van'){
+                    prop.y = 546;
+                    prop.setScale(2)
+                } else {
+                    prop.y = 550;
+                    prop.setScale(2)
+                }
             }
         }
-
 
         //handle wave spawns
         if ((this.wave == 1) && (this.waveCalled == false)) {
@@ -292,11 +444,6 @@ class OneD extends Phaser.Scene {
             let r_truck1 = my.sprite.r_truckGroup.getFirstDead()
             r_truck1.active = true;
 
-            //let r_truck2 = my.sprite.r_truckGroup.getFirstDead()
-            //r_truck2.active = true;
-
-            //console.log(my.sprite.m_truckGroup.getTotalUsed());
-
             let plane1 = my.sprite.planeGroup.getFirstDead()
             plane1.active = true;
 
@@ -305,8 +452,9 @@ class OneD extends Phaser.Scene {
             m_truck1.setScale(2);
 
             r_truck1.visible = true;
-            this.position(r_truck1, 400, 550);
+            this.position(r_truck1, 400, 560);
             r_truck1.setScale(2.5);
+            r_truck1.setDepth(1);
 
             m_truck2.visible = true;
             this.position(m_truck2, 600, 550);
@@ -316,6 +464,7 @@ class OneD extends Phaser.Scene {
             plane1.x = -200;
             plane1.y = 80;
             plane1.setScale(1, 0.5);
+            plane1.play('plane_anim');
 
             this.waveCalled = true;
         } else if ((this.wave == 2) && (this.waveCalled == false)) {
@@ -332,15 +481,16 @@ class OneD extends Phaser.Scene {
             let r_truck1 = my.sprite.r_truckGroup.getFirstDead()
             r_truck1.active = true;
 
-            console.log(my.sprite.m_truckGroup.getTotalUsed());
+            //console.log(my.sprite.m_truckGroup.getTotalUsed());
 
             m_truck1.visible = true;
             this.position(m_truck1, 200, 550);
             m_truck1.setScale(2);
 
             r_truck1.visible = true;
-            this.position(r_truck1, 350, 550);
+            this.position(r_truck1, 350, 560);
             r_truck1.setScale(2.5);
+            r_truck1.setDepth(1);
 
             m_truck2.visible = true;
             this.position(m_truck2, 500, 550);
@@ -363,7 +513,7 @@ class OneD extends Phaser.Scene {
             m_truck4.active = true;
             let m_truck5 = my.sprite.m_truckGroup.getFirstDead()
             m_truck5.active = true;
-            console.log(my.sprite.m_truckGroup.getTotalUsed());
+            //console.log(my.sprite.m_truckGroup.getTotalUsed());
 
             let plane1 = my.sprite.planeGroup.getFirstDead()
             plane1.active = true;
@@ -392,6 +542,8 @@ class OneD extends Phaser.Scene {
             plane1.x = -200;
             plane1.y = 80;
             plane1.setScale(1, 0.5);
+            plane1.play('plane_anim');
+
 
             this.hotdogActive = true;
             this.position(my.sprite.hotdog, 600, 535);
@@ -459,8 +611,6 @@ class OneD extends Phaser.Scene {
                         this.missileCooldownCounter = this.missileCooldown;
                     }
                 }
-                
-                //console.log("laser time"); //be sure to implement a cooldown!!
             }
         }
 
@@ -479,8 +629,6 @@ class OneD extends Phaser.Scene {
                         this.rocketCooldownCounter = this.rocketCooldown;
                     }
                 }
-                
-                //console.log("laser time"); //be sure to implement a cooldown!!
             }
         }
 
@@ -498,7 +646,7 @@ class OneD extends Phaser.Scene {
                             drop.setScale(1);
                             drop.setAngle(135);
                             this.dropCooldownCounter = this.dropCooldown;
-                            console.log(plane.y);
+                            //console.log(plane.y);
                         }
                     }
                 }
@@ -524,7 +672,7 @@ class OneD extends Phaser.Scene {
 
         // check for bullet going offscreen
         for (let laser of my.sprite.bulletGroup.getChildren()) {
-            if (laser.y > 525) {
+            if (laser.y > 540) {
                 laser.active = false;
                 laser.visible = false;
             }
@@ -572,80 +720,172 @@ class OneD extends Phaser.Scene {
         my.sprite.dropGroup.incX(300*dt);
 
         //check laser collision
-        for (let laser of my.sprite.bulletGroup.getChildren()) { //I may be able to use another for loop inside
-            //for(let enemy of my.sprite.enemies.getChildren())
+        for (let laser of my.sprite.bulletGroup.getChildren()) {
             for (let prop of my.sprite.propGroup.getChildren()) {
-                if (this.collides(prop, laser)) { //collides(enemy, laser) maybe it works??
-                laser.y = 700;
-                prop.x = Math.random()*config.width + 1200;
-                prop.y = 550;
-                //also assign new random sprite
+                if (this.collides(prop, laser)) { 
+                    this.sound.play("boom1");
+                    this.explosion_anim = this.add.sprite(prop.x, prop.y, "explosion1").setScale(0.1).play("explosion_anim");
+                    laser.y = 700;
+                    prop.x = Math.random()*config.width + 1200;
+                    let key = this.propAssets[Phaser.Math.Between(0, 6)];
+                    prop.setTexture(key);
+                    if (key == 'truck') {
+                        prop.y = 542;
+                        prop.setScale(2)
+                    } else if (key == 'barrier'){
+                        prop.y = 557;
+                        prop.setScale(2)
+                    } else if (key == 'light'){
+                        prop.y = 523;
+                        prop.setScale(2, 3);
+                    } else if (key == 'sign'){
+                        prop.y = 517;
+                        prop.setScale(3);
+                    }else if (key == 'van'){
+                        prop.y = 546;
+                        prop.setScale(2)
+                    } else {
+                        prop.y = 552;
+                        prop.setScale(2)
+                    }
+                    this.score += 100;
+                    this.scoreText.setText('Score: ' + this.score);
                 }
             }
             for (let m_truck of my.sprite.m_truckGroup.getChildren()) {
                 if (this.collides(m_truck, laser)) {
+                    this.sound.play("boom3");
+                    this.explosion_anim = this.add.sprite(m_truck.x, m_truck.y, "explosion1").setScale(0.1).play("explosion_anim");
                     this.tweens.killTweensOf(m_truck); 
                     laser.y = 700;
                     m_truck.active = false;
                     m_truck.visible = false;
                     m_truck.x = -200;
                     this.enemiesDefeated += 1;
+                    this.score += 200;
+                    this.scoreText.setText('Score: ' + this.score);
                     m_truck.destroy();
-                    //console.log(this.enemiesDefeated);
                 }
             }   
             for (let r_truck of my.sprite.r_truckGroup.getChildren()) {
                 if (this.collides(r_truck, laser)) {
+                    this.sound.play("boom3");
+                    this.explosion_anim = this.add.sprite(r_truck.x, r_truck.y, "explosion1").setScale(0.1).play("explosion_anim");
                     this.tweens.killTweensOf(r_truck); 
                     laser.y = 700;
                     r_truck.active = false;
                     r_truck.visible = false;
                     r_truck.x = -200;
                     this.enemiesDefeated += 1;
+                    this.score += 200;
+                    this.scoreText.setText('Score: ' + this.score);
                     r_truck.destroy();
-                    //console.log(this.enemiesDefeated);
                 }
             }
             let hotdog = my.sprite.hotdog;
             if (this.collides(hotdog, laser)) {
+                    this.sound.play("boom3");
                     laser.y = 700;
                     this.hotdogHealth -= 1;
                     if (this.hotdogHealth == 0) {
+                        this.explosion_anim = this.add.sprite(hotdog.x, hotdog.y, "explosion1").setScale(0.1).play("explosion_anim");
                         hotdog.visible = false;
                         this.hotdogActive = false;
+                        this.score += 500;
+                        this.scoreText.setText('Score: ' + this.score);
                     }
                     this.enemiesDefeated += 1;
-                    //console.log(this.enemiesDefeated);
                 }
         }
         for (let missile of my.sprite.missileGroup.getChildren()) {
             for (let plane of my.sprite.planeGroup.getChildren()) {
                 if (this.collides(missile, plane)) {
+                    this.sound.play("boom2");
+                    this.explosion_anim = this.add.sprite(plane.x, plane.y, "explosion1").setScale(0.1).play("explosion_anim");
+                    missile.y = -500;
                     missile.active = false;
                     missile.visible = false;
                     plane.active = false;
                     plane.visible = false;
-                    //plane.destroy();
+                    plane.y = -300;
+                    this.score += 300;
+                    this.scoreText.setText('Score: ' + this.score);
                 }
             }
             let ufo = my.sprite.ufo;
             if ((this.collides(missile, ufo)) && (this.hitCooldownCounter < 0)){
-                console.log("hit!"); //SIMPLE SOLUTION TO 12 HITS ON ONE MISSILE COLLISION
-                                     //IS TO MOVE MISSILE ELSEWHERE ON FIRST FRAME
+                this.sound.play("boom2");
+                console.log("hit!");
+                missile.y = -100;
                 missile.active = false;
                 missile.visible = false;
                 this.hitCooldown = this.hitCooldownCounter;
+                this.playerHealth -= 1;
             }
         }
-        //console.log("laserX:" + laser.x);
-        //console.log("laserY:" + laser.y);
-        //console.log("truckX:" + m_truck.x);
-        //console.log("truckY:" + m_truck.y);
-        //console.log(my.sprite.m_truckGroup.getTotalUsed());
-        //console.log(this.enemiesDefeated);
-        //console.log(m_truck.active);
-        //console.log(m_truck.visible);
-
+        for (let rocket of my.sprite.rocketGroup.getChildren()) {
+            for (let plane of my.sprite.planeGroup.getChildren()) {
+                if (this.collides(rocket, plane)) {
+                    this.sound.play("boom2");
+                    this.explosion_anim = this.add.sprite(plane.x, plane.y, "explosion1").setScale(0.1).play("explosion_anim");
+                    rocket.y = -300;
+                    rocket.active = false;
+                    rocket.visible = false;
+                    plane.active = false;
+                    plane.visible = false;
+                    plane.y = -200;
+                    this.score += 300;
+                    this.scoreText.setText('Score: ' + this.score);
+                }
+            }
+            let ufo = my.sprite.ufo;
+            if ((this.collides(rocket, ufo)) && (this.hitCooldownCounter < 0)){
+                this.sound.play("boom2");
+                console.log("hit!");
+                rocket.y = -100;
+                rocket.active = false;
+                rocket.visible = false;
+                this.hitCooldown = this.hitCooldownCounter;
+                this.playerHealth -= 1;
+            }
+        }
+        for (let drop of my.sprite.dropGroup.getChildren()) {
+            let ufo = my.sprite.ufo;
+            if ((this.collides(drop, ufo)) && (this.hitCooldownCounter < 0)){
+                this.sound.play("boom2");
+                console.log("hit!");
+                drop.y = 700;
+                drop.active = false;
+                drop.visible = false;
+                this.hitCooldown = this.hitCooldownCounter;
+                this.playerHealth -= 1;
+            }
+        }
+        for (let h_laser of my.sprite.h_laserGroup.getChildren()) {
+            let ufo = my.sprite.ufo;
+            if ((this.collides(h_laser, ufo)) && (this.hitCooldownCounter < 0)){
+                this.sound.play("boom2");
+                console.log("hit!");
+                h_laser.y = -100;
+                h_laser.active = false;
+                h_laser.visible = false;
+                this.hitCooldown = this.hitCooldownCounter;
+                this.playerHealth -= 1;
+            }
+            for (let plane of my.sprite.planeGroup.getChildren()) {
+                if (this.collides(h_laser, plane)) {
+                    this.sound.play("boom2");
+                    this.explosion_anim = this.add.sprite(plane.x, plane.y, "explosion1").setScale(0.1).play("explosion_anim");
+                    h_laser.y = -100;
+                    h_laser.active = false;
+                    h_laser.visible = false;
+                    plane.active = false;
+                    plane.visible = false;
+                    this.score += 300;
+                    this.scoreText.setText('Score: ' + this.score);
+                }
+            }
+        }
     }
 
     move(sprite, dist, dt) {
@@ -671,7 +911,7 @@ class OneD extends Phaser.Scene {
             x: x,
             y: y,
             duration: 2000,
-            ease: 'Power2.easeIn', //'Sine.easeInOut
+            ease: 'Power2.easeIn',
             yoyo: false,
             repeat: 0
         });
